@@ -1,0 +1,52 @@
+version: '2'
+services:
+    db:
+        build: etc/mysql
+        ports:
+            - 3306:3306
+        volumes:
+            - "./.data/db:/var/lib/mysql"
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: lan
+    redis:
+        image: redis:alpine
+        ports:
+            - 6379:6379
+    memcached:
+        image: memcached:alpine
+        ports:
+            - 11211:11211
+    php:
+        build: etc/php/5.6
+        links:
+            - db:mysqldb
+            - redis
+            - memcached
+        volumes:
+            - ./www:/var/www/
+            - ./logs/php/:/var/www/logs
+    nginx:
+        build: etc/nginx
+        ports:
+            - 80:80
+            - 443:443
+        links:
+            - php
+            - redis
+        volumes_from:
+            - php
+        volumes:
+            - ./logs/nginx/:/var/log/nginx
+    phpmyadmin:
+        build: etc/phpmyadmin
+        container_name: phpmyadmin
+        environment:
+            PMA_ARBITRARY: 1
+            MYSQL_USER: root
+            MYSQL_PASSWORD: root
+            MYSQL_ROOT_PASSWORD: root
+        ports:
+         - 8080:80
+        links:
+            - db
